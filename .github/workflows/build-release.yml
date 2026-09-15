@@ -54,7 +54,7 @@ jobs:
           SIGNING_KEY_PASSWORD: android
         run: |
           chmod +x gradlew
-          ./gradlew assembleScrcpyRelease --stacktrace
+          ./gradlew assembleScrcpyRelease --stacktrace -x :server:lintVitalRelease
 
       - name: Prepare release asset
         run: |

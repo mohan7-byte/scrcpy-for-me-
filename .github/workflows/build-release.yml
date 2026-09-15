@@ -33,6 +33,7 @@ jobs:
           python3 patch_screen_off_v2.py
           python3 patch_screen_off_v3.py
           python3 patch_screen_power_protocol.py
+          python3 patch_touchshield.py
 
       - name: Create temporary signing key
         working-directory: upstream
@@ -80,4 +81,4 @@ jobs:
           gh release create "$TAG" \
             dist/scrcpy-for-me-screen-off.apk \
             --title "Scrcpy For Me - Screen Off ${GITHUB_RUN_NUMBER}" \
-            --notes "Dedicated display-power control packet, Android 10 physical-display power mode, upstream-style touch forwarding while the panel is off, and keep-active support."
+            --notes "Physical display power off via dedicated control command, plus optional touchscreen shielding to suppress ghost touches from a damaged panel while keeping injected scrcpy touch input available."

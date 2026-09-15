@@ -29,7 +29,9 @@ jobs:
           distribution: temurin
 
       - name: Apply improved physical screen-off feature
-        run: python3 patch_screen_off_v2.py
+        run: |
+          python3 patch_screen_off_v2.py
+          python3 patch_screen_off_v3.py
 
       - name: Create temporary signing key
         working-directory: upstream
@@ -77,4 +79,4 @@ jobs:
           gh release create "$TAG" \
             dist/scrcpy-for-me-screen-off.apk \
             --title "Scrcpy For Me - Screen Off ${GITHUB_RUN_NUMBER}" \
-            --notes "Improved screen-off mode: keeps Android active for remote control, turns off only the physical display, and adds a separate floating OFF/ON button over the video."
+            --notes "Physical-display-only screen-off port based on upstream scrcpy's display-power mechanism, with a separate floating OFF/ON control."

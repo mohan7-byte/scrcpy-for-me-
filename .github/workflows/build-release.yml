@@ -1,0 +1,84 @@
+name: Build and Release Scrcpy Screen Off
+
+on:
+  push:
+    branches:
+      - screen-off-feature
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+env:
+  UPSTREAM_REPO: https://github.com/zwc456baby/ScrcpyForAndroid.git
+
+jobs:
+  build-release:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout this repository
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          java-version: '17'
+          distribution: temurin
+          cache: gradle
+
+      - name: Clone upstream ScrcpyForAndroid
+        run: |
+          git clone --depth 1 --recurse-submodules "$UPSTREAM_REPO" upstream
+
+      - name: Apply physical screen-off feature
+        run: python3 patch_screen_off.py
+
+      - name: Create temporary signing key
+        working-directory: upstream
+        run: |
+          keytool -genkeypair -v \
+            -keystore app/scrcpy.jks \
+            -storepass android \
+            -keypass android \
+            -alias scrcpy \
+            -keyalg RSA \
+            -keysize 2048 \
+            -validity 10000 \
+            -dname "CN=scrcpy-for-me, OU=Android, O=mohan7-byte, L=Jodhpur, ST=Rajasthan, C=IN"
+
+      - name: Build signed release APK
+        working-directory: upstream
+        env:
+          SIGNING_STORE_PASSWORD: android
+          SIGNING_KEY_ALIAS: scrcpy
+          SIGNING_KEY_PASSWORD: android
+        run: |
+          chmod +x gradlew
+          ./gradlew assembleScrcpyRelease --stacktrace
+
+      - name: Prepare release asset
+        run: |
+          APK=$(find upstream/app/build/outputs/apk -type f -name '*.apk' | head -n 1)
+          test -n "$APK"
+          mkdir -p dist
+          cp "$APK" dist/scrcpy-for-me-screen-off.apk
+          ls -lh dist/scrcpy-for-me-screen-off.apk
+
+      - name: Upload build artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: scrcpy-for-me-screen-off
+          path: dist/scrcpy-for-me-screen-off.apk
+          retention-days: 90
+
+      - name: Publish GitHub Release
+        if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/screen-off-feature'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          TAG="screen-off-${GITHUB_RUN_NUMBER}"
+          gh release create "$TAG" \
+            dist/scrcpy-for-me-screen-off.apk \
+            --title "Scrcpy For Me - Screen Off ${GITHUB_RUN_NUMBER}" \
+            --notes "Adds a Screen OFF/ON button to the Android mirror window. OFF powers down the remote physical display while keeping the scrcpy mirror/control session running."

@@ -3,7 +3,6 @@ name: Build and Release Scrcpy Screen Off
 on:
   push:
     branches:
-      - screen-off-feature
       - main
   workflow_dispatch:
 
@@ -21,8 +20,7 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Clone upstream ScrcpyForAndroid
-        run: |
-          git clone --depth 1 --recurse-submodules "$UPSTREAM_REPO" upstream
+        run: git clone --depth 1 --recurse-submodules "$UPSTREAM_REPO" upstream
 
       - name: Set up JDK 17
         uses: actions/setup-java@v4
@@ -30,8 +28,8 @@ jobs:
           java-version: '17'
           distribution: temurin
 
-      - name: Apply physical screen-off feature
-        run: python3 patch_screen_off.py
+      - name: Apply improved physical screen-off feature
+        run: python3 patch_screen_off_v2.py
 
       - name: Create temporary signing key
         working-directory: upstream
@@ -62,7 +60,7 @@ jobs:
           test -n "$APK"
           mkdir -p dist
           cp "$APK" dist/scrcpy-for-me-screen-off.apk
-          ls -lh dist/scrcpy-for-me-screen-off.apk
+          sha256sum dist/scrcpy-for-me-screen-off.apk
 
       - name: Upload build artifact
         uses: actions/upload-artifact@v4
@@ -72,7 +70,6 @@ jobs:
           retention-days: 90
 
       - name: Publish GitHub Release
-        if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/screen-off-feature'
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
@@ -80,4 +77,4 @@ jobs:
           gh release create "$TAG" \
             dist/scrcpy-for-me-screen-off.apk \
             --title "Scrcpy For Me - Screen Off ${GITHUB_RUN_NUMBER}" \
-            --notes "Adds a Screen OFF/ON button to the Android mirror window. OFF powers down the remote physical display while keeping the scrcpy mirror/control session running."
+            --notes "Improved screen-off mode: keeps Android active for remote control, turns off only the physical display, and adds a separate floating OFF/ON button over the video."
